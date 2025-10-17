@@ -24,7 +24,7 @@
 #include "winc_wifi.h"
 #include "winc_sock.h"
 
-#define VERBOSE     1           // Diagnostic output level (0 to 3)
+#define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
 #define SPI_PORT    spi0        // SPI port number
 #define NEW_PROTO   1           // Old or new Pico connections
@@ -90,7 +90,6 @@ int read_irq(void)
 // Initialise SPI interface
 void spi_setup(int fd)
 {
-    stdio_init_all();
     spi_init(SPI_PORT, SPI_SPEED);
     spi_set_format(SPI_PORT, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
     gpio_init(MISO_PIN);
@@ -123,6 +122,9 @@ int main(int argc, char *argv[])
     int sock;
 
     verbose = VERBOSE;
+    stdio_init_all();
+    sleep_ms(5000);
+    printf("START------------------------------\n");
     spi_setup(fd);
     disable_crc(fd);
     ok = chip_init(fd);
