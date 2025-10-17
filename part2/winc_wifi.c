@@ -71,35 +71,32 @@ typedef struct {
     uint8_t nosave, x2[2];
 } OLD_CONN_HDR;
 
-// Structure to hold opcode names
-typedef struct {
-    int op;
-    char *s;
-} OP_STR;
-
-OP_STR wifi_gop_resps[] = {{GOP_CONN_REQ_OLD, "Conn req"}, {GOP_STATE_CHANGE, "State change"},
-    {GOP_DHCP_CONF, "DHCP conf"}, {GOP_CONN_REQ_NEW, "Conn_req"}, {GOP_BIND, "Bind"},
-    {GOP_LISTEN, "Listen"}, {GOP_ACCEPT, "Accept"}, {GOP_SEND, "Send"}, {GOP_RECV, "Recv"},
-    {GOP_SENDTO, "SendTo"}, {GOP_RECVFROM, "RecvFrom"}, {GOP_CLOSE, "Close"}, {0,""}};
+OP_STR wifi_req_gop_strs[] = {
+    {GOP_CONN_REQ_OLD, "Conn req old"}, {GOP_CONN_REQ_NEW, "Conn_req new"},
+    {GOP_BIND, "Bind"}, {GOP_LISTEN, "Listen"}, {GOP_SEND, "Send"},
+    {GOP_SENDTO, "SendTo"}, {GOP_CLOSE, "Close"}, {GOP_RECV, "Recv"},
+    {GOP_RECVFROM, "RecvFrom"}, {0,""}
+};
+OP_STR wifi_resp_gop_strs[] = {
+    {GOP_STATE_CHANGE, "State change"}, {GOP_DHCP_CONF, "DHCP conf"},
+    {GOP_BIND, "Bind"}, {GOP_LISTEN, "Listen"}, {GOP_ACCEPT, "Accept"},
+    {GOP_RECV, "Recv"}, {GOP_RECVFROM, "RecvFrom"}, {0,""}
+};
 
 uint8_t remove_crc[11] = {0xC9, 0, 0xE8, 0x24, 0,  0,  0, 0x52, 0x5C, 0, 0};
 
-// Return string for opcode
+// Return string for opcode, given group and op codes
 char *op_str(int gid, int op)
 {
-    OP_STR *ops=wifi_gop_resps;
-    uint16_t gop=GIDOP(gid, op);
-
-    while (ops->op && ops->op!=gop)
-        ops++;
-    return(ops->op ? ops->s : "");
+    return(gop_str(GIDOP(gid, op)));
 }
 
-// Return string for opcode
+// Return string for opcode, given combined group/op code
 char *gop_str(uint16_t gop)
 {
-    OP_STR *ops=wifi_gop_resps;
+    OP_STR *ops = (gop & REQ_DATA) ? wifi_req_gop_strs : wifi_resp_gop_strs;
 
+    gop &= ~REQ_DATA;
     while (ops->op && ops->op!=gop)
         ops++;
     return(ops->op ? ops->s : "");
@@ -387,7 +384,8 @@ bool hif_put(int fd, uint16_t gop, void *dp1, int dlen1, void *dp2, int dlen2, i
     ok = ok && spi_write_reg(fd, RCV_CTRL_REG3, addr<<2|2); // Complete transfer
     if (verbose > 1)
     {
-        printf("Send gid=%u op=%u len=%u,%u\n", gid, op, dlen1, dlen2);
+        printf("Send %s gid=%u op=%u len=%u,%u\n",
+                gop_str(gop), gid, op, dlen1, dlen2);
         dump_hex(dp1, dlen1, 16, "  ");
         if (dp2)
             dump_hex(dp2, dlen2, 16, "  ");

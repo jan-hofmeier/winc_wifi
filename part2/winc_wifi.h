@@ -75,6 +75,12 @@
 // HIF header size (in bytes)
 #define HIF_HDR_SIZE        8
 
+// Structure to hold opcode names
+typedef struct {
+    int op;
+    char *s;
+} OP_STR;
+
 #define ANY_CHAN        255
 #define AUTH_OPEN       1
 #define AUTH_PSK        2

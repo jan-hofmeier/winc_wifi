@@ -37,6 +37,8 @@
 #define UDP_DATA_OSET       68
 #define TCP_DATA_OSET       80
 
+char *gop_str(uint16_t gop);
+
 // DHCP response message
 typedef struct {
     uint32_t self, gate, dns,
