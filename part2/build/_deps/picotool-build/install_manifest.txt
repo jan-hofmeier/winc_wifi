@@ -1,6 +1,0 @@
-/app/part2/build/_deps/picotool/picotool
-/app/part2/build/_deps/picotool/picotoolTargets.cmake
-/app/part2/build/_deps/picotool/picotoolTargets-release.cmake
-/app/part2/build/_deps/picotool/picotoolConfig.cmake
-/app/part2/build/_deps/picotool/picotoolConfigVersion.cmake
-/app/part2/build/_deps/picotool/enc_bootloader.elf
