@@ -21,7 +21,9 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#ifdef USE_USB_MSC
 #include "bsp/board.h"
+#endif
 #include "tusb.h"
 #include "winc_wifi.h"
 #include "winc_sock.h"
@@ -115,6 +117,11 @@ void spi_setup(int fd)
     gpio_init(CS_PIN);
     gpio_set_dir(CS_PIN, GPIO_OUT);
     gpio_put(CS_PIN, 1);
+#ifdef EN_PIN
+    gpio_init(EN_PIN);
+    gpio_set_dir(EN_PIN, GPIO_OUT);
+    gpio_put(EN_PIN, 1);
+#endif
     gpio_init(WAKE_PIN);
     gpio_set_dir(WAKE_PIN, GPIO_OUT);
     gpio_put(WAKE_PIN, 1);
@@ -139,8 +146,7 @@ int main(int argc, char *argv[])
     int sock;
 
     verbose = VERBOSE;
-#if USE_USB_MSC
-#else
+#ifndef USE_USB_MSC
     stdio_init_all();
 #endif
     sleep_ms(5000);
@@ -153,9 +159,9 @@ int main(int argc, char *argv[])
     else
     {
         ok = chip_get_info(g_spi_fd);
-#if USE_USB_MSC
         uint32_t flash_size = spi_flash_get_size(g_spi_fd);
         printf("Flash size: %lu Mb\n", flash_size);
+#ifdef USE_USB_MSC
         tud_init(0);
 #endif
 
@@ -177,7 +183,7 @@ int main(int argc, char *argv[])
         printf("\n");
         while (ok)
         {
-#if USE_USB_MSC
+#ifdef USE_USB_MSC
             tud_task();
 #endif
             if (read_irq() == 0)
