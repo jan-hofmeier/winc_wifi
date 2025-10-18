@@ -22,9 +22,6 @@ pico_set_program_version(winc_wifi "0.1")
 pico_enable_stdio_uart(winc_wifi 0)
 # pico_enable_stdio_usb(winc_wifi 1)
 
-# Add the standard library to the build
-target_link_libraries(winc_wifi pico_stdlib)
-
 # Add any user requested libraries
 target_link_libraries(winc_wifi
 	pico_stdlib
@@ -34,6 +31,7 @@ target_link_libraries(winc_wifi
         )
 
 target_include_directories(winc_wifi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(winc_wifi PRIVATE ${PICO_SDK_PATH}/lib/tinyusb/hw)
 
 add_definitions(-D CFG_TUD_MSC -D CFG_TUD_CDC -D CFG_TUD_MSC_EP_BUFSIZE=512)
 

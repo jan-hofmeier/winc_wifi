@@ -107,7 +107,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
   (void) offset;
 
   uint32_t addr = lba * 512;
-  spi_flash_read(0, buffer, addr, bufsize);
+  spi_flash_read(g_spi_fd, buffer, addr, bufsize);
 
   return bufsize;
 }
