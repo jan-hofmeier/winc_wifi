@@ -40,11 +40,11 @@
 #define MOSI_PIN    12
 #define MISO_PIN    11
 #define CS_PIN      13
-#define RESET_PIN   6          // BCM pin 12
-#define EN_PIN      7          // BCM pin 11
-#define WAKE_PIN    8          // BCM pin 13
-#define IRQ_PIN     9         // BCM pin 16
-#else                       // New Pico prototype
+#define RESET_PIN   6
+#define EN_PIN      7
+#define WAKE_PIN    8
+#define IRQ_PIN     9
+#else
 #define SCK_PIN     18
 #define MOSI_PIN    19
 #define MISO_PIN    16
