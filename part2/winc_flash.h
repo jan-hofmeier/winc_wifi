@@ -41,9 +41,6 @@ uint32_t spi_flash_get_size(int fd);
 #define M2M_PRINT(...)
 #endif
 
-// Dummy REV definition to avoid compilation errors
-#ifndef REV
-#define REV(x) (x)
-#endif
+#define REV(id) (id & 0xff)
 
 #endif

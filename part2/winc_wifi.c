@@ -316,12 +316,44 @@ bool set_gpio_val(int fd, uint32_t val)
 // Get chip ident number (1000 or 3000)
 uint32_t chip_get_id(int fd)
 {
-    uint32_t ret=0, chip=0, rev=0;
+    static uint32_t chipid = 0;
 
-    if (spi_read_reg(fd, CHIPID_REG, &chip) &&
-        spi_read_reg(fd, REVID_REG, &rev))
-        ret = chip;
-    return(ret);
+	if (chipid == 0) {
+		uint32_t rfrevid;
+
+		if(!spi_read_reg(fd, 0x1000, &chipid)) {
+			chipid = 0;
+			return 0;
+		}
+		if(!spi_read_reg(fd, 0x13f4, &rfrevid)) {
+			chipid = 0;
+			return 0;
+		}
+
+		if (chipid == 0x1002a0)  {
+			if (rfrevid == 0x1) { /* 1002A0 */
+			} else /* if (rfrevid == 0x2) */ { /* 1002A1 */
+				chipid = 0x1002a1;
+			}
+		} else if(chipid == 0x1002b0) {
+			if(rfrevid == 3) { /* 1002B0 */
+			} else if(rfrevid == 4) { /* 1002B1 */
+				chipid = 0x1002b1;
+			} else /* if(rfrevid == 5) */ { /* 1002B2 */
+				chipid = 0x1002b2;
+			}
+		}else if(chipid == 0x1000F0) {
+			if(!spi_read_reg(fd, 0x3B0000, &chipid)) {
+			chipid = 0;
+			return 0;
+			}
+		}else {
+
+		}
+		chipid &= ~(0x0f0000);
+		chipid |= 0x050000;
+	}
+	return chipid;
 }
 
 // Initialise WiFi chip
