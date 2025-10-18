@@ -70,6 +70,7 @@ void interrupt_handler(void)
     RESP_MSG *rmp=&resp_msg;
     char temps[50]="";
 
+    led_on(1);
     if (verbose > 1)
         printf("Interrupt\n");
     ok = spi_read_reg(fd, RCV_CTRL_REG0, &val) &&
@@ -118,6 +119,7 @@ void interrupt_handler(void)
     ok = ok && hif_rx_done(fd);
     if (verbose > 1)
         printf("Interrupt complete %s\n", ok ? "OK":"error");
+    led_off();
 }
 
 // Check for socket actions, given a received message
