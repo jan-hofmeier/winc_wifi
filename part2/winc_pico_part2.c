@@ -24,7 +24,6 @@
 #include "winc_wifi.h"
 #include "winc_sock.h"
 #include "winc_flash.h"
-#include "credentials.h"
 
 #define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
@@ -50,6 +49,8 @@
 #endif
 
 #define LED_PIN     25
+#define PSK_SSID            "testnet"
+#define PSK_PASSPHRASE      "testpass"
 
 extern int verbose;
 
@@ -147,7 +148,7 @@ int main(int argc, char *argv[])
     else
     {
         ok = chip_get_info(fd);
-        uint32_t flash_size = spi_flash_get_size();
+        uint32_t flash_size = spi_flash_get_size(fd);
         printf("Flash size: %lu Mb\n", flash_size);
         ok = ok && set_gpio_val(fd, 0x58070) && set_gpio_dir(fd, 0x58070);
 

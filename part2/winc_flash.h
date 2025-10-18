@@ -1,6 +1,3 @@
-#ifndef __WINC_FLASH_H__
-#define __WINC_FLASH_H__
-
 // ATWINC1500/1510 WiFi module flash memory interface for the Pi Pico
 //
 // Copyright (c) 2021 Jeremy P Bentham
@@ -17,16 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef __WINC_FLASH_H__
+#define __WINC_FLASH_H__
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "winc_wifi.h"
 
 // Global functions
-int8_t spi_flash_enable(uint8_t enable);
-int8_t spi_flash_read(uint8_t *pu8Buf, uint32_t u32offset, uint32_t u32Sz);
-int8_t spi_flash_write(uint8_t* pu8Buf, uint32_t u32Offset, uint32_t u32Sz);
-int8_t spi_flash_erase(uint32_t u32Offset, uint32_t u32Sz);
-uint32_t spi_flash_get_size(void);
+int8_t spi_flash_enable(int fd, uint8_t enable);
+int8_t spi_flash_read(int fd, uint8_t *pu8Buf, uint32_t u32offset, uint32_t u32Sz);
+int8_t spi_flash_write(int fd, uint8_t* pu8Buf, uint32_t u32Offset, uint32_t u32Sz);
+int8_t spi_flash_erase(int fd, uint32_t u32Offset, uint32_t u32Sz);
+uint32_t spi_flash_get_size(int fd);
 
 // Redefine BSP_MIN to MIN
 #ifndef MIN
