@@ -138,7 +138,10 @@ int main(int argc, char *argv[])
     int sock;
 
     verbose = VERBOSE;
+#if USE_USB_MSC
+#else
     stdio_init_all();
+#endif
     sleep_ms(5000);
     printf("START------------------------------\n");
     spi_setup(g_spi_fd);
@@ -149,9 +152,11 @@ int main(int argc, char *argv[])
     else
     {
         ok = chip_get_info(g_spi_fd);
+#if USE_USB_MSC
         uint32_t flash_size = spi_flash_get_size(g_spi_fd);
         printf("Flash size: %lu Mb\n", flash_size);
         tud_init(0);
+#endif
 
         ok = ok && set_gpio_val(g_spi_fd, 0x58070) && set_gpio_dir(g_spi_fd, 0x58070);
 
@@ -171,7 +176,9 @@ int main(int argc, char *argv[])
         printf("\n");
         while (ok)
         {
+#if USE_USB_MSC
             tud_task();
+#endif
             if (read_irq() == 0)
                 interrupt_handler();
         }
