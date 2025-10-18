@@ -174,6 +174,8 @@ bool old_connect_open(int fd);
 bool old_connect_psk(int fd);
 
 uint32_t usec(void);
+void led_on(bool on);
+void led_off(void);
 void spi_setup(int fd);
 int read_irq(void);
 void toggle_reset(void);
