@@ -141,6 +141,8 @@ typedef struct {
 typedef void (* SOCK_HANDLER)(int fd, uint8_t sock, int rxlen);
 
 char *op_str(int gid, int op);
+char *gid_str(int gid);
+char *op_req_str(int op);
 bool ustimeout(uint32_t *tp, uint32_t tout);
 bool msdelay(int n);
 bool usdelay(int n);

@@ -111,8 +111,8 @@ void interrupt_handler(void)
     }
     if (verbose)
     {
-        printf("Interrupt gid %u op %u len %u %s %s\n",
-               hh.gid, hh.op, hh.len, op_str(hh.gid, hh.op), temps);
+        printf("Interrupt gid %s(%u) op %s(%u) len %u %s\n",
+               gid_str(hh.gid), hh.gid, op_str(hh.gid, hh.op), hh.op, hh.len, temps);
     }
     check_sock(fd, gop, rmp);
     ok = ok && hif_rx_done(fd);
