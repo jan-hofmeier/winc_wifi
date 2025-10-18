@@ -149,6 +149,19 @@ int main(int argc, char *argv[])
         ok = chip_get_info(fd);
         uint32_t flash_size = spi_flash_get_size(fd);
         printf("Flash size: %lu Mb\n", flash_size);
+
+        if (flash_size > 0) {
+            uint8_t flash_data[256];
+            for (uint32_t i = 0; i < flash_size * 1024 * 1024; i += sizeof(flash_data)) {
+                if (spi_flash_read(fd, flash_data, i, sizeof(flash_data)) == M2M_SUCCESS) {
+                    dump_hex(flash_data, sizeof(flash_data), 16, "  ");
+                } else {
+                    printf("Failed to read flash data at offset %lu\n", i);
+                    break;
+                }
+            }
+        }
+
         ok = ok && set_gpio_val(fd, 0x58070) && set_gpio_dir(fd, 0x58070);
 
         sock = open_sock_server(TCP_PORTNUM, 1, tcp_echo_handler);
