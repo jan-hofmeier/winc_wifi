@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#include "bsp/board.h"
+#include "tusb.h"
 #include "winc_wifi.h"
 #include "winc_sock.h"
 #include "winc_flash.h"
@@ -52,6 +54,7 @@
 #define LED_PIN     25
 
 extern int verbose;
+int g_spi_fd;
 
 // Return microsecond time
 uint32_t usec(void)
@@ -130,7 +133,6 @@ void spi_setup(int fd)
 
 int main(int argc, char *argv[])
 {
-    int fd;
     uint32_t val=0;
     bool ok, irq=1;
     int sock;
@@ -139,37 +141,26 @@ int main(int argc, char *argv[])
     stdio_init_all();
     sleep_ms(5000);
     printf("START------------------------------\n");
-    spi_setup(fd);
-    disable_crc(fd);
-    ok = chip_init(fd);
+    spi_setup(g_spi_fd);
+    disable_crc(g_spi_fd);
+    ok = chip_init(g_spi_fd);
     if (!ok)
         printf("Can't initialise chip\n");
     else
     {
-        ok = chip_get_info(fd);
-        uint32_t flash_size = spi_flash_get_size(fd);
+        ok = chip_get_info(g_spi_fd);
+        uint32_t flash_size = spi_flash_get_size(g_spi_fd);
         printf("Flash size: %lu Mb\n", flash_size);
+        tud_init(0);
 
-        if (flash_size > 0) {
-            uint8_t flash_data[256];
-            for (uint32_t i = 0; i < flash_size * 1024 * 1024; i += sizeof(flash_data)) {
-                if (spi_flash_read(fd, flash_data, i, sizeof(flash_data)) == M2M_SUCCESS) {
-                    dump_hex(flash_data, sizeof(flash_data), 16, "  ");
-                } else {
-                    printf("Failed to read flash data at offset %lu\n", i);
-                    break;
-                }
-            }
-        }
-
-        ok = ok && set_gpio_val(fd, 0x58070) && set_gpio_dir(fd, 0x58070);
+        ok = ok && set_gpio_val(g_spi_fd, 0x58070) && set_gpio_dir(g_spi_fd, 0x58070);
 
         sock = open_sock_server(TCP_PORTNUM, 1, tcp_echo_handler);
         printf("Socket %u TCP port %u %s\n", sock, TCP_PORTNUM, sock>=0 ? "ok" : "failed");
         sock = open_sock_server(UDP_PORTNUM, 0, udp_echo_handler);
         printf("Socket %u UDP port %u %s\n", sock, UDP_PORTNUM, sock>=0 ? "ok" : "failed");
 
-        ok = join_net(fd, PSK_SSID, PSK_PASSPHRASE);
+        ok = join_net(g_spi_fd, PSK_SSID, PSK_PASSPHRASE);
 
         printf("Connecting");
         while (ok && (irq=read_irq()) && msdelay(100))
@@ -180,6 +171,7 @@ int main(int argc, char *argv[])
         printf("\n");
         while (ok)
         {
+            tud_task();
             if (read_irq() == 0)
                 interrupt_handler();
         }

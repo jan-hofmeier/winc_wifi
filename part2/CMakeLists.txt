@@ -14,13 +14,13 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(winc_wifi winc_pico_part2.c winc_wifi.c winc_sock.c winc_flash.c)
+add_executable(winc_wifi winc_pico_part2.c winc_wifi.c winc_sock.c winc_flash.c msc_disk.c usb_descriptors.c)
 
 pico_set_program_name(winc_wifi "winc_wifi")
 pico_set_program_version(winc_wifi "0.1")
 
 pico_enable_stdio_uart(winc_wifi 0)
-pico_enable_stdio_usb(winc_wifi 1)
+# pico_enable_stdio_usb(winc_wifi 1)
 
 # Add the standard library to the build
 target_link_libraries(winc_wifi pico_stdlib)
@@ -29,7 +29,13 @@ target_link_libraries(winc_wifi pico_stdlib)
 target_link_libraries(winc_wifi
 	pico_stdlib
         hardware_spi
+        tinyusb_board
+        tinyusb_device
         )
+
+target_include_directories(winc_wifi PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_definitions(-D CFG_TUD_MSC -D CFG_TUD_CDC -D CFG_TUD_MSC_EP_BUFSIZE=512)
 
 pico_add_extra_outputs(winc_wifi)
 

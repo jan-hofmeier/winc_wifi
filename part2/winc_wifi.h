@@ -186,5 +186,7 @@ int read_dev(char *dev);
 int spi_xfer(int fd, uint8_t *txd, uint8_t *rxd, int len);
 void err_exit(char *s);
 
+extern int g_spi_fd;
+
 #endif
 // EOF
