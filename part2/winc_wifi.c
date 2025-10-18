@@ -81,6 +81,10 @@ OP_STR wifi_gop_resps[] = {{GOP_CONN_REQ_OLD, "Conn req"}, {GOP_STATE_CHANGE, "S
     {GOP_DHCP_CONF, "DHCP conf"}, {GOP_CONN_REQ_NEW, "Conn_req"}, {GOP_BIND, "Bind"},
     {GOP_LISTEN, "Listen"}, {GOP_ACCEPT, "Accept"}, {GOP_SEND, "Send"}, {GOP_RECV, "Recv"},
     {GOP_SENDTO, "SendTo"}, {GOP_RECVFROM, "RecvFrom"}, {GOP_CLOSE, "Close"}, {0,""}};
+OP_STR wifi_gids[] = {{GID_MAIN, "Main"}, {GID_WIFI, "WiFi"}, {GID_IP, "IP"},
+    {GID_HIF, "HIF"}, {0,""}};
+OP_STR wifi_op_reqs[] = {{REQ_DATA, "Data"}, {0,""}};
+
 
 uint8_t remove_crc[11] = {0xC9, 0, 0xE8, 0x24, 0,  0,  0, 0x52, 0x5C, 0, 0};
 
@@ -99,8 +103,30 @@ char *op_str(int gid, int op)
 char *gop_str(uint16_t gop)
 {
     OP_STR *ops=wifi_gop_resps;
+    uint16_t gop_req = gop & ~REQ_DATA;
 
-    while (ops->op && ops->op!=gop)
+    while (ops->op && ops->op!=gop_req)
+        ops++;
+    return(ops->op ? ops->s : "");
+}
+
+// Return string for group ID
+char *gid_str(int gid)
+{
+    OP_STR *ops=wifi_gids;
+
+    while (ops->op && ops->op!=gid)
+        ops++;
+    return(ops->op ? ops->s : "");
+}
+
+// Return string for operation request
+char *op_req_str(int op)
+{
+    OP_STR *ops=wifi_op_reqs;
+    int op_req = op & REQ_DATA;
+
+    while (ops->op && ops->op!=op_req)
         ops++;
     return(ops->op ? ops->s : "");
 }
@@ -387,7 +413,8 @@ bool hif_put(int fd, uint16_t gop, void *dp1, int dlen1, void *dp2, int dlen2, i
     ok = ok && spi_write_reg(fd, RCV_CTRL_REG3, addr<<2|2); // Complete transfer
     if (verbose > 1)
     {
-        printf("Send gid=%u op=%u len=%u,%u\n", gid, op, dlen1, dlen2);
+        printf("Send gop=%s(0x%x) gid=%s(%u) op=%s(0x%x) len=%u,%u\n",
+            gop_str(gop), gop, gid_str(gid), gid, op_req_str(op), op, dlen1, dlen2);
         dump_hex(dp1, dlen1, 16, "  ");
         if (dp2)
             dump_hex(dp2, dlen2, 16, "  ");
