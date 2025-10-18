@@ -1,3 +1,6 @@
+#ifndef __WINC_SOCK_H__
+#define __WINC_SOCK_H__
+
 // ATWINC1500/1510 WiFi socket definitions for the Pi Pico
 //
 // Copyright (c) 2021 Jeremy P Bentham
@@ -107,5 +110,6 @@ bool get_sock_data(int fd, uint8_t sock, void *data, int len);
 void tcp_echo_handler(int fd, uint8_t sock, int rxlen);
 void udp_echo_handler(int fd, uint8_t sock, int rxlen);
 
+#endif
 // EOF
 

@@ -1,3 +1,6 @@
+#ifndef __WINC_WIFI_H__
+#define __WINC_WIFI_H__
+
 // ATWINC1500/1510 WiFi module socket definitions for the Pi Pico
 //
 // Copyright (c) 2021 Jeremy P Bentham
@@ -183,4 +186,5 @@ int read_dev(char *dev);
 int spi_xfer(int fd, uint8_t *txd, uint8_t *rxd, int len);
 void err_exit(char *s);
 
+#endif
 // EOF
