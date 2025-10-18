@@ -24,6 +24,7 @@
 #include "winc_wifi.h"
 #include "winc_sock.h"
 #include "winc_flash.h"
+#include "credentials.h"
 
 #define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
@@ -49,8 +50,6 @@
 #endif
 
 #define LED_PIN     25
-#define PSK_SSID            "testnet"
-#define PSK_PASSPHRASE      "testpass"
 
 extern int verbose;
 
