@@ -31,16 +31,17 @@
 #define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
 #define SPI_PORT    spi0        // SPI port number
-#define NEW_PROTO   1           // Old or new Pico connections
+#define NEW_CHIP   0
 
-#if !NEW_PROTO              // Old Pico prototype
-#define SCK_PIN     2
-#define MOSI_PIN    3
-#define MISO_PIN    4
-#define CS_PIN      5
-#define RESET_PIN   18          // BCM pin 12
-#define WAKE_PIN    12          // BCM pin 13
-#define IRQ_PIN     17          // BCM pin 16
+#if NEW_CHIP
+#define SCK_PIN     10
+#define MOSI_PIN    12
+#define MISO_PIN    11
+#define CS_PIN      13
+#define RESET_PIN   6          // BCM pin 12
+#define EN_PIN      7          // BCM pin 11
+#define WAKE_PIN    8          // BCM pin 13
+#define IRQ_PIN     9         // BCM pin 16
 #else                       // New Pico prototype
 #define SCK_PIN     18
 #define MOSI_PIN    19
