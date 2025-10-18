@@ -47,6 +47,7 @@
 #define IRQ_PIN     22
 #endif
 
+#define LED_PIN     25
 #define PSK_SSID            "testnet"
 #define PSK_PASSPHRASE      "testpass"
 
@@ -56,6 +57,16 @@ extern int verbose;
 uint32_t usec(void)
 {
     return(time_us_32());
+}
+
+// Turn LED on or off
+void led_on(bool on)
+{
+    gpio_put(LED_PIN, on);
+}
+void led_off(void)
+{
+    gpio_put(LED_PIN, 0);
 }
 
 // Do SPI transfer
@@ -109,6 +120,9 @@ void spi_setup(int fd)
     gpio_init(RESET_PIN);
     gpio_set_dir(RESET_PIN, GPIO_OUT);
     gpio_put(RESET_PIN, 0);
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 0);
     sleep_ms(1);
     gpio_put(RESET_PIN, 1);
     sleep_ms(1);
