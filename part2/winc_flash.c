@@ -32,6 +32,7 @@
  *
  */
 
+#include <stdio.h>
 #include "winc_flash.h"
 #define DUMMY_REGISTER	(0x1084)
 
@@ -69,6 +70,35 @@ SPI Flash DMA
 #define M2M_SUCCESS 0
 #define M2M_ERR_INIT -5
 #define M2M_ERR_FAIL -12
+
+#define M2M_LOG_NONE									0
+#define M2M_LOG_ERROR									1
+#define M2M_LOG_INFO									2
+#define M2M_LOG_REQ										3
+#define M2M_LOG_DBG										4
+
+#define CONF_WINC_PRINTF									printf
+
+#if (verbose == 1)
+#undef M2M_PRINT
+#define M2M_PRINT(...)							do{CONF_WINC_PRINTF(__VA_ARGS__);}while(0)
+#if (verbose >= M2M_LOG_ERROR)
+#undef M2M_ERR
+#define M2M_ERR(...)							do{CONF_WINC_PRINTF("(APP)(ERR)[%s][%d]",__FUNCTION__,__LINE__); CONF_WINC_PRINTF(__VA_ARGS__);CONF_WINC_PRINTF("\r");}while(0)
+#if (verbose >= M2M_LOG_INFO)
+#undef M2M_INFO
+#define M2M_INFO(...)							do{CONF_WINC_PRINTF("(APP)(INFO)"); CONF_WINC_PRINTF(__VA_ARGS__);CONF_WINC_PRINTF("\r");}while(0)
+#if (verbose >= M2M_LOG_REQ)
+#undef M2M_REQ
+#define M2M_REQ(...)							do{CONF_WINC_PRINTF("(APP)(R)"); CONF_WINC_PRINTF(__VA_ARGS__);CONF_WINC_PRINTF("\r");}while(0)
+#if (verbose >= M2M_LOG_DBG)
+#undef M2M_DBG
+#define M2M_DBG(...)							do{CONF_WINC_PRINTF("(APP)(DBG)[%s][%d]",__FUNCTION__,__LINE__); CONF_WINC_PRINTF(__VA_ARGS__);CONF_WINC_PRINTF("\r");}while(0)
+#endif /*M2M_LOG_DBG*/
+#endif /*M2M_LOG_REQ*/
+#endif /*M2M_LOG_INFO*/
+#endif /*M2M_LOG_ERROR*/
+#endif /*CONF_WINC_DEBUG */
 
 /*********************************************/
 /* STATIC FUNCTIONS							 */
@@ -826,6 +856,7 @@ uint32_t spi_flash_get_size(int fd)
 	if(!gu32InternalFlashSize)
 	{
 		u32FlashId = spi_flash_rdid(fd);
+		printf("Flash ID: 0x%X\n", u32FlashId);
 		if((u32FlashId != 0xffffffff) && (u32FlashId !=0))
 		{
 			/*flash size is the third byte from the FLASH RDID*/
