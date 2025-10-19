@@ -32,19 +32,20 @@
 
 #define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
-#define SPI_PORT    spi0        // SPI port number
-#define NEW_CHIP   0
+#define NEW_CHIP   1
 
 #if NEW_CHIP
+#define SPI_PORT    spi1        // SPI port number
 #define SCK_PIN     10
-#define MOSI_PIN    12
-#define MISO_PIN    11
+#define MOSI_PIN    11
+#define MISO_PIN    12
 #define CS_PIN      13
 #define RESET_PIN   6
 #define EN_PIN      7
 #define WAKE_PIN    8
 #define IRQ_PIN     9
 #else
+#define SPI_PORT    spi0        // SPI port number
 #define SCK_PIN     18
 #define MOSI_PIN    19
 #define MISO_PIN    16
@@ -151,9 +152,18 @@ int main(int argc, char *argv[])
 #endif
     sleep_ms(5000);
     printf("START------------------------------\n");
+    sleep_ms(10000);
     spi_setup(g_spi_fd);
     disable_crc(g_spi_fd);
     ok = chip_init(g_spi_fd);
+    while(!ok){
+        printf("Can't initialise chip\n");
+        gpio_put(RESET_PIN, 0);
+        sleep_ms(1000);
+        gpio_put(RESET_PIN, 1);
+        sleep_ms(5000);
+        ok = chip_init(g_spi_fd);
+    }
     if (!ok)
         printf("Can't initialise chip\n");
     else
