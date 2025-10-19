@@ -43,6 +43,6 @@ uint32_t spi_flash_get_size(int fd);
 
 #define M2M_SUCCESS 0
 
-#define REV(id) (id & 0xff)
+#define REV(id) (((id) & 0x00000fff))
 
 #endif

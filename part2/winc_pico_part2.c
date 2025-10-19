@@ -21,7 +21,9 @@
 #include <stdbool.h>
 #include "pico/stdlib.h"
 #include "hardware/spi.h"
+#ifdef USE_USB_MSC
 #include "bsp/board.h"
+#endif
 #include "tusb.h"
 #include "winc_wifi.h"
 #include "winc_sock.h"
@@ -30,18 +32,20 @@
 
 #define VERBOSE     3           // Diagnostic output level (0 to 3)
 #define SPI_SPEED   11000000    // SPI clock (actually 10.42 MHz)
-#define SPI_PORT    spi0        // SPI port number
-#define NEW_PROTO   1           // Old or new Pico connections
+#define NEW_CHIP   1
 
-#if !NEW_PROTO              // Old Pico prototype
-#define SCK_PIN     2
-#define MOSI_PIN    3
-#define MISO_PIN    4
-#define CS_PIN      5
-#define RESET_PIN   18          // BCM pin 12
-#define WAKE_PIN    12          // BCM pin 13
-#define IRQ_PIN     17          // BCM pin 16
-#else                       // New Pico prototype
+#if NEW_CHIP
+#define SPI_PORT    spi1        // SPI port number
+#define SCK_PIN     10
+#define MOSI_PIN    11
+#define MISO_PIN    12
+#define CS_PIN      13
+#define RESET_PIN   6
+#define EN_PIN      7
+#define WAKE_PIN    8
+#define IRQ_PIN     9
+#else
+#define SPI_PORT    spi0        // SPI port number
 #define SCK_PIN     18
 #define MOSI_PIN    19
 #define MISO_PIN    16
@@ -114,6 +118,11 @@ void spi_setup(int fd)
     gpio_init(CS_PIN);
     gpio_set_dir(CS_PIN, GPIO_OUT);
     gpio_put(CS_PIN, 1);
+#ifdef EN_PIN
+    gpio_init(EN_PIN);
+    gpio_set_dir(EN_PIN, GPIO_OUT);
+    gpio_put(EN_PIN, 1);
+#endif
     gpio_init(WAKE_PIN);
     gpio_set_dir(WAKE_PIN, GPIO_OUT);
     gpio_put(WAKE_PIN, 1);
@@ -138,23 +147,31 @@ int main(int argc, char *argv[])
     int sock;
 
     verbose = VERBOSE;
-#if USE_USB_MSC
-#else
+#ifndef USE_USB_MSC
     stdio_init_all();
 #endif
     sleep_ms(5000);
     printf("START------------------------------\n");
+    sleep_ms(10000);
     spi_setup(g_spi_fd);
     disable_crc(g_spi_fd);
     ok = chip_init(g_spi_fd);
+    while(!ok){
+        printf("Can't initialise chip\n");
+        gpio_put(RESET_PIN, 0);
+        sleep_ms(1000);
+        gpio_put(RESET_PIN, 1);
+        sleep_ms(5000);
+        ok = chip_init(g_spi_fd);
+    }
     if (!ok)
         printf("Can't initialise chip\n");
     else
     {
         ok = chip_get_info(g_spi_fd);
-#if USE_USB_MSC
         uint32_t flash_size = spi_flash_get_size(g_spi_fd);
         printf("Flash size: %lu Mb\n", flash_size);
+#ifdef USE_USB_MSC
         tud_init(0);
 #endif
 
@@ -176,7 +193,7 @@ int main(int argc, char *argv[])
         printf("\n");
         while (ok)
         {
-#if USE_USB_MSC
+#ifdef USE_USB_MSC
             tud_task();
 #endif
             if (read_irq() == 0)
@@ -185,5 +202,3 @@ int main(int argc, char *argv[])
     }
 	return(0);
 }
-
-// EOF
