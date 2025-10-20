@@ -2,7 +2,7 @@
 High-level GOP (Generic Operation Packet) decoder for WINC1500 communication.
 """
 import struct
-from . import spi_decoder
+import spi_decoder
 
 # ... (GOP constants are the same)
 # Host Interface (HIF) Group IDs from winc_wifi.h
