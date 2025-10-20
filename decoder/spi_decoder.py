@@ -123,22 +123,3 @@ class SingleWrite(SpiTransaction):
         else:
             s += "\n  MISO <- Invalid response!"
         return s
-
-
-def decode_spi(mosi, miso):
-    pos = 0
-    while pos < len(mosi):
-        cmd = mosi[pos]
-
-        if cmd == CMD_SINGLE_READ or cmd == CMD_SINGLE_WRITE:
-            if pos + 11 > len(mosi): break
-            tx = SingleRead(pos, mosi[pos:pos+11], miso[pos:pos+11]) if cmd == CMD_SINGLE_READ else SingleWrite(pos, mosi[pos:pos+11], miso[pos:pos+11])
-            yield tx
-            pos += 11
-        elif cmd == CMD_READ_DATA or cmd == CMD_WRITE_DATA:
-            # These will be handled by the GOP decoder, which will consume them.
-            # For now, just yield a basic transaction.
-            yield SpiTransaction(pos, [cmd], [0])
-            pos += 1 # Let GOP decoder handle the rest
-        else:
-            pos += 1
