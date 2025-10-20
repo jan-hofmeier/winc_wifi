@@ -1,2 +1,4 @@
 part2/build/
+bootloader/build/
 pico-sdk/
+credentials.h
