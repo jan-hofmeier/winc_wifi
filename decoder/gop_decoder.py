@@ -76,21 +76,20 @@ GOP_PARSERS = {
 }
 
 
-def find_response_start(data):
-    """Finds the start of a GOP response in a data stream."""
-    # Responses often start with the GID.
-    for i in range(len(data) - 4):
-        gid = data[i]
-        op = data[i+1]
-        gop = GIDOP(gid, op)
-        if gop in OPERATIONS:
-            return i
+def find_gop_start(data):
+    """Finds the start of a GOP in a data stream by looking for a valid GID."""
+    for i, byte in enumerate(data):
+        if byte in GROUP_IDS:
+            if i + 1 < len(data):
+                gop = GIDOP(byte, data[i+1] & 0x7f)
+                if gop in OPERATIONS:
+                    return i
     return -1
 
 
 def decode_gop(data, direction):
     """Decodes a single GOP from a data payload."""
-    start = find_response_start(data)
+    start = find_gop_start(data)
     if start == -1: return
 
     data = data[start:]
@@ -100,7 +99,7 @@ def decode_gop(data, direction):
     gop_str = OPERATIONS.get(gop, f"Unknown GOP (0x{gop:04x})")
     is_req = " (REQ_DATA)" if (op & REQ_DATA) else ""
 
-    print(f"  {direction} GOP -> {gop_str}{is_req}")
+    print(f"  {direction} GOP -> @{start} {gop_str}{is_req}")
 
     payload = data[8:] # Skip HIF header
     if gop in GOP_PARSERS:
@@ -108,43 +107,50 @@ def decode_gop(data, direction):
 
 
 def decode_full_stream(mosi, miso):
-    pos = 0
-    while pos < len(mosi):
-        cmd = mosi[pos]
+    mosi_pos = 0
+    miso_pos = 0
 
-        if cmd == spi_decoder.CMD_SINGLE_READ or cmd == spi_decoder.CMD_SINGLE_WRITE:
-            if pos + 11 > len(mosi): break
-            tx_class = spi_decoder.SingleRead if cmd == spi_decoder.CMD_SINGLE_READ else spi_decoder.SingleWrite
-            tx = tx_class(pos, mosi[pos:pos+11], miso[pos:pos+11])
+    while mosi_pos < len(mosi):
+        cmd = mosi[mosi_pos]
+
+        if cmd == spi_decoder.CMD_SINGLE_READ:
+            if mosi_pos + 11 > len(mosi): break
+            tx = spi_decoder.SingleRead(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
+            miso_pos = tx.find_and_parse_response(miso, miso_pos)
             print(tx)
-            pos += 11
+            mosi_pos += 11
+
+        elif cmd == spi_decoder.CMD_SINGLE_WRITE:
+            if mosi_pos + 11 > len(mosi): break
+            tx = spi_decoder.SingleWrite(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
+            miso_pos = tx.find_and_parse_response(miso, miso_pos)
+            print(tx)
+            mosi_pos += 11
 
         elif cmd == spi_decoder.CMD_WRITE_DATA:
-            if pos + 7 > len(mosi): break
-            addr = spi_decoder.u24_to_int_be(mosi[pos+1:pos+4])
-            count = spi_decoder.u24_to_int_be(mosi[pos+4:pos+7])
-            print(f"[{pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+            if mosi_pos + 7 > len(mosi): break
+            addr = spi_decoder.u24_to_int_be(mosi[mosi_pos+1:mosi_pos+4])
+            count = spi_decoder.u24_to_int_be(mosi[mosi_pos+4:mosi_pos+7])
+            print(f"[{mosi_pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
 
-            data_start = pos + 10 # After cmd, addr, count, 2-byte wait, 0xf3
+            data_start = mosi_pos + 10
             if data_start + count > len(mosi): break
 
             payload = mosi[data_start : data_start + count]
             decode_gop(payload, "MOSI")
-
-            pos = data_start + count
+            mosi_pos = data_start + count
 
         elif cmd == spi_decoder.CMD_READ_DATA:
-            if pos + 7 > len(mosi): break
-            addr = spi_decoder.u24_to_int_be(mosi[pos+1:pos+4])
-            count = spi_decoder.u24_to_int_be(mosi[pos+4:pos+7])
-            print(f"[{pos}] CMD_READ_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+            if mosi_pos + 7 > len(mosi): break
+            addr = spi_decoder.u24_to_int_be(mosi[mosi_pos+1:mosi_pos+4])
+            count = spi_decoder.u24_to_int_be(mosi[mosi_pos+4:mosi_pos+7])
+            print(f"[{mosi_pos}] CMD_READ_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
 
-            # The response is in MISO. It's harder to align, so we'll search for it.
-            # This is a heuristic based on the data captures.
-            search_area = miso[pos : pos + count + 20]
+            # The GOP response is in the MISO stream. We can't know the exact
+            # length, so we'll just look for a GOP in the upcoming bytes.
+            search_area = miso[miso_pos : miso_pos + count + 100] # Heuristic search window
             decode_gop(search_area, "MISO")
-
-            pos += 7 # Let it resync on the next command
+            mosi_pos += 7
 
         else:
-            pos += 1
+            mosi_pos += 1
