@@ -18,7 +18,7 @@ pico_sdk_init()
 add_executable(winc_wifi winc_pico_part2.c winc_wifi.c winc_sock.c winc_flash.c)
 
 # Pass the build option to the C preprocessor
-target_compile_definitions(winc_wifi PRIVATE USE_USB_MSC=${USE_USB_MSC})
+target_compile_definitions(winc_wifi PRIVATE)
 
 pico_set_program_name(winc_wifi "winc_wifi")
 pico_set_program_version(winc_wifi "0.1")
@@ -41,7 +41,7 @@ if(USE_USB_MSC)
     target_include_directories(winc_wifi PRIVATE ${PICO_SDK_PATH}/lib/tinyusb/hw)
 
     # Add definitions for TinyUSB classes
-    add_definitions(-D CFG_TUD_MSC -D CFG_TUD_CDC -D CFG_TUD_MSC_EP_BUFSIZE=512)
+    add_definitions(-D CFG_TUD_MSC -D CFG_TUD_CDC -D CFG_TUD_MSC_EP_BUFSIZE=512 -D USE_USB_MSC)
 else()
     message(STATUS "Building in Serial-only mode")
     # Use standard Pico SDK USB serial
