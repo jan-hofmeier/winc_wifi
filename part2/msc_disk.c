@@ -72,8 +72,8 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t* block_count, uint16_t* block_siz
   (void) lun;
 
   uint32_t flash_size_mbits = spi_flash_get_size(g_spi_fd);
-  *block_count = (flash_size_mbits * 1024 * 1024) / 8 / 512;
-  *block_size  = 512;
+  *block_size = 4096;
+  *block_count = (flash_size_mbits * 1024 * 1024) / 8 / *block_size;
 }
 
 // Invoked when received Start Stop Unit command
@@ -106,7 +106,7 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
   (void) lun;
   (void) offset;
 
-  uint32_t addr = lba * 512;
+  uint32_t addr = lba * 4096;
   spi_flash_read(g_spi_fd, buffer, addr, bufsize);
 
   return bufsize;
@@ -116,13 +116,14 @@ int32_t tud_msc_read10_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buff
 // Process data in buffer to disk's storage and return number of written bytes
 int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize)
 {
-  (void) lun;
-  (void) offset;
-  (void) lba;
-  (void) buffer;
-  (void) bufsize;
+    (void) lun;
+    (void) offset;
 
-  return 0;
+    uint32_t addr = lba * 4096;
+    spi_flash_erase(g_spi_fd, addr, bufsize);
+    spi_flash_write(g_spi_fd, buffer, addr, bufsize);
+
+    return bufsize;
 }
 
 // Callback invoked when received an SCSI command not in built-in list below
