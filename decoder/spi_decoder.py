@@ -38,11 +38,22 @@ REGISTERS = {
     0x1084: "RCV_CTRL_REG1",
     0x1088: "RCV_CTRL_REG5",
     0x108c: "NMI_STATE_REG",
+    0x111c: "NMI_SPI_FLASH_ADDR",
     0x13f4: "REVID_REG",
     0x1408: "PIN_MUX_REG0",
     0x14a0: "NMI_GP_REG1",
     0x1a00: "NMI_EN_REG",
     0xE824: "SPI_CFG_REG",
+    0x10200: "SPI_FLASH_MODE",
+    0x10204: "SPI_FLASH_CMD_CNT",
+    0x10208: "SPI_FLASH_DATA_CNT",
+    0x1020c: "SPI_FLASH_BUF1",
+    0x10210: "SPI_FLASH_BUF2",
+    0x10214: "SPI_FLASH_BUF_DIR",
+    0x10218: "SPI_FLASH_TR_DONE",
+    0x1021c: "SPI_FLASH_DMA_ADDR",
+    0x10220: "SPI_FLASH_MSB_CTL",
+    0x10224: "SPI_FLASH_TX_CTL",
     0x207bc: "HOST_WAIT_REG",
     0xc0008: "NMI_GP_REG2",
     0xc000c: "BOOTROM_REG",
@@ -78,7 +89,11 @@ class SingleRead(SpiTransaction):
         super().__init__(pos, mosi_slice)
         addr_bytes = self.mosi[1:4]
         self.addr = u24_to_int_be(addr_bytes)
-        self.addr_str = REGISTERS.get(self.addr, f"0x{self.addr:04x}")
+        reg_name = REGISTERS.get(self.addr)
+        if reg_name:
+            self.addr_str = f"{reg_name} (0x{self.addr:04x})"
+        else:
+            self.addr_str = f"0x{self.addr:04x}"
         self.value = None
 
     def find_and_parse_response(self, miso_stream, search_pos):
@@ -104,7 +119,11 @@ class SingleWrite(SpiTransaction):
         super().__init__(pos, mosi_slice)
         addr_bytes = self.mosi[1:4]
         self.addr = u24_to_int_be(addr_bytes)
-        self.addr_str = REGISTERS.get(self.addr, f"0x{self.addr:04x}")
+        reg_name = REGISTERS.get(self.addr)
+        if reg_name:
+            self.addr_str = f"{reg_name} (0x{self.addr:04x})"
+        else:
+            self.addr_str = f"0x{self.addr:04x}"
         val_bytes = self.mosi[4:8]
         self.value = u32_to_int_be(val_bytes)
         self.acked = False
