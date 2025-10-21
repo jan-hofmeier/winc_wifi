@@ -16,12 +16,13 @@ def load_data_from_csv(filepath):
     mosi, miso = [], []
     with open(filepath, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for i,row in enumerate(reader):
+            #print(F"{i}: {row}")
             try:
                 mosi.append(int(row['MOSI'], 16))
                 miso.append(int(row['MISO'], 16))
             except (ValueError, KeyError):
-                print(f"Warning: Skipping invalid row in CSV: {row}")
+                print(f"Warning: Skipping invalid row ({i}) in CSV: {row}")
     return mosi, miso
 
 def get_fallback_data():

@@ -113,19 +113,19 @@ def decode_full_stream(mosi, miso):
     while mosi_pos < len(mosi):
         cmd = mosi[mosi_pos]
 
-        if cmd == spi_decoder.CMD_SINGLE_READ:
+        if cmd == spi_decoder.CMD_SINGLE_READ or cmd == spi_decoder.CMD_INTERNAL_READ:
             if mosi_pos + 11 > len(mosi): break
             tx = spi_decoder.SingleRead(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
             print(tx)
             mosi_pos += 11
 
-        elif cmd == spi_decoder.CMD_SINGLE_WRITE:
-            if mosi_pos + 11 > len(mosi): break
+        elif cmd == spi_decoder.CMD_SINGLE_WRITE or cmd == spi_decoder.CMD_INTERNAL_WRITE:
+            if mosi_pos + 10 > len(mosi): break
             tx = spi_decoder.SingleWrite(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
             print(tx)
-            mosi_pos += 11
+            mosi_pos += 9
 
         elif cmd == spi_decoder.CMD_WRITE_DATA:
             if mosi_pos + 7 > len(mosi): break
@@ -151,6 +151,8 @@ def decode_full_stream(mosi, miso):
             search_area = miso[miso_pos : miso_pos + count + 100] # Heuristic search window
             decode_gop(search_area, "MISO")
             mosi_pos += 7
-
+        elif cmd == 0:
+            mosi_pos +=1
         else:
-            mosi_pos += 1
+            print(f"Unknown CMD 0x{cmd:x} at {mosi_pos}. miso_pos: {miso_pos}")
+            exit(-1)
