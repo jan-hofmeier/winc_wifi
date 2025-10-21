@@ -114,18 +114,18 @@ def decode_full_stream(mosi, miso):
         cmd = mosi[mosi_pos]
 
         if cmd == spi_decoder.CMD_SINGLE_READ:
-            if mosi_pos + 11 > len(mosi): break
-            tx = spi_decoder.SingleRead(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
+            if mosi_pos + 4 > len(mosi): break
+            tx = spi_decoder.SingleRead(mosi_pos, mosi[mosi_pos : mosi_pos + 4])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
             print(tx)
-            mosi_pos += 11
+            mosi_pos += 4
 
         elif cmd == spi_decoder.CMD_SINGLE_WRITE:
-            if mosi_pos + 11 > len(mosi): break
-            tx = spi_decoder.SingleWrite(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
+            if mosi_pos + 8 > len(mosi): break
+            tx = spi_decoder.SingleWrite(mosi_pos, mosi[mosi_pos : mosi_pos + 8])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
             print(tx)
-            mosi_pos += 11
+            mosi_pos += 8
 
         elif cmd == spi_decoder.CMD_WRITE_DATA:
             if mosi_pos + 7 > len(mosi): break

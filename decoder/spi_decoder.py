@@ -1,6 +1,7 @@
 """
 Low-level SPI decoder for WINC1500 communication.
 """
+import sys
 
 # ... (rest of the constants are the same)
 CMD_DMA_WRITE = 0xc1
@@ -82,14 +83,23 @@ class SingleRead(SpiTransaction):
         self.value = None
 
     def find_and_parse_response(self, miso_stream, search_pos):
-        for i in range(search_pos, len(miso_stream) - 7):
-            if miso_stream[i] == self.command and miso_stream[i+1] == 0 and (miso_stream[i+2] & 0xf0) == 0xf0:
+        try:
+            i = miso_stream.index(self.command, search_pos)
+            # Check for non-zero bytes between search_pos and i
+            for k in range(search_pos, i):
+                if miso_stream[k] != 0:
+                    print(f"Error: Skipping non-zero MISO byte at index {k}: 0x{miso_stream[k]:02x}")
+                    sys.exit(1)
+
+            if i + 7 < len(miso_stream) and miso_stream[i+1] == 0 and (miso_stream[i+2] & 0xf0) == 0xf0:
                 val_bytes = miso_stream[i+3 : i+7]
-                if len(val_bytes) == 4:
-                    self.value = u32_to_int_le(val_bytes)
-                    self.response_pos = i
-                    return i + 7 # Return position after the response
-        return search_pos + 1
+                self.value = u32_to_int_le(val_bytes)
+                self.response_pos = i
+                return i + 7 # Return position after the response
+        except ValueError:
+            # Command not found, advance to the end
+            return len(miso_stream)
+        return len(miso_stream)
 
     def __str__(self):
         s = super().__str__() + f"\n  MOSI -> Addr: {self.addr_str}"
@@ -110,12 +120,22 @@ class SingleWrite(SpiTransaction):
         self.acked = False
 
     def find_and_parse_response(self, miso_stream, search_pos):
-        for i in range(search_pos, len(miso_stream) - 1):
-            if miso_stream[i] == self.command and miso_stream[i+1] == 0:
+        try:
+            i = miso_stream.index(self.command, search_pos)
+            # Check for non-zero bytes between search_pos and i
+            for k in range(search_pos, i):
+                if miso_stream[k] != 0:
+                    print(f"Error: Skipping non-zero MISO byte at index {k}: 0x{miso_stream[k]:02x}")
+                    sys.exit(1)
+
+            if i + 1 < len(miso_stream) and miso_stream[i+1] == 0:
                 self.acked = True
                 self.response_pos = i
                 return i + 2
-        return search_pos + 1
+        except ValueError:
+            # Command not found, advance to the end
+            return len(miso_stream)
+        return len(miso_stream)
 
     def __str__(self):
         s = super().__str__() + f"\n  MOSI -> Addr: {self.addr_str}, Value: 0x{self.value:08x}"
