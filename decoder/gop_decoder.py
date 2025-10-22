@@ -155,7 +155,7 @@ def decode_gop(data, direction):
         GOP_PARSERS[gop](payload)
 
 
-def decode_full_stream(mosi, miso):
+def decode_full_stream(mosi, miso, verbose=False):
     mosi_pos = 0
     miso_pos = 0
 
@@ -166,14 +166,16 @@ def decode_full_stream(mosi, miso):
             if mosi_pos + 11 > len(mosi): break
             tx = spi_decoder.SingleRead(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
-            print(tx)
+            if verbose:
+                print(tx)
             mosi_pos += 11
 
         elif cmd == spi_decoder.CMD_SINGLE_WRITE or cmd == spi_decoder.CMD_INTERNAL_WRITE:
             if mosi_pos + 10 > len(mosi): break
             tx = spi_decoder.SingleWrite(mosi_pos, mosi[mosi_pos : mosi_pos + 11])
             miso_pos = tx.find_and_parse_response(miso, miso_pos)
-            print(tx)
+            if verbose:
+                print(tx)
             mosi_pos += 9
 
         elif cmd == spi_decoder.CMD_WRITE_DATA:
@@ -195,7 +197,8 @@ def decode_full_stream(mosi, miso):
                     is_gop_header = True
 
             if is_gop_header:
-                print(f"[{mosi_pos}] CMD_WRITE_DATA (GOP Header)\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+                if verbose:
+                    print(f"[{mosi_pos}] CMD_WRITE_DATA (GOP Header)\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
                 hif_len = payload[2] | (payload[3] << 8)
                 payload_len_expected = hif_len - 8
 
@@ -216,7 +219,8 @@ def decode_full_stream(mosi, miso):
                         if start_of_cmd + 7 > len(mosi): break
                         next_addr = spi_decoder.u24_to_int_be(mosi[start_of_cmd+1:start_of_cmd+4])
                         next_count = spi_decoder.u24_to_int_be(mosi[start_of_cmd+4:start_of_cmd+7])
-                        print(f"[{start_of_cmd}] CMD_WRITE_DATA (GOP Payload)\n  MOSI -> Addr: 0x{next_addr:04x}, Count: {next_count}")
+                        if verbose:
+                            print(f"[{start_of_cmd}] CMD_WRITE_DATA (GOP Payload)\n  MOSI -> Addr: 0x{next_addr:04x}, Count: {next_count}")
 
                         next_data_start = start_of_cmd + 10
                         if next_data_start + next_count > len(mosi): break
@@ -233,7 +237,8 @@ def decode_full_stream(mosi, miso):
                 mosi_pos = temp_mosi_pos
 
             else:
-                print(f"[{mosi_pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+                if verbose:
+                    print(f"[{mosi_pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
                 decode_gop(payload, "MOSI")
                 mosi_pos = data_start + count
 
@@ -241,14 +246,16 @@ def decode_full_stream(mosi, miso):
             if mosi_pos + 7 > len(mosi): break
             addr = spi_decoder.u24_to_int_be(mosi[mosi_pos+1:mosi_pos+4])
             count = spi_decoder.u24_to_int_be(mosi[mosi_pos+4:mosi_pos+7])
-            print(f"[{mosi_pos}] CMD_READ_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+            if verbose:
+                print(f"[{mosi_pos}] CMD_READ_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
 
             search_area = miso[miso_pos : miso_pos + count + 100]
             decode_gop(search_area, "MISO")
             mosi_pos += 7
 
         elif cmd == spi_decoder.CMD_RESET:
-            print(f"[{mosi_pos}] CMD_RESET")
+            if verbose:
+                print(f"[{mosi_pos}] CMD_RESET")
             mosi_pos += 1
 
         elif cmd == 0:

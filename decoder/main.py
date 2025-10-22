@@ -34,6 +34,7 @@ def get_fallback_data():
 def main():
     parser = argparse.ArgumentParser(description="Decode WINC1500 SPI traffic.")
     parser.add_argument("-f", "--file", help="Path to a CSV file with MOSI and MISO data.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print low-level SPI commands.")
     args = parser.parse_args()
 
     if args.file:
@@ -47,7 +48,7 @@ def main():
         print("No data to decode.")
         return
 
-    decode_full_stream(mosi, miso)
+    decode_full_stream(mosi, miso, args.verbose)
 
 if __name__ == "__main__":
     main()
