@@ -68,11 +68,60 @@ def parse_dhcp_conf(payload):
     ip_str = f"{ip[3]}.{ip[2]}.{ip[1]}.{ip[0]}"
     print(f"    - DHCP_CONF: IP Address: {ip_str}")
 
+def parse_conn_req_old(payload):
+    payload_bytes = bytes(payload)
+    psk = payload_bytes[0:65].partition(b'\0')[0].decode('ascii', errors='ignore')
+    typ = payload_bytes[65]
+    # Note: C struct packing may cause offsets to vary. This is a best guess.
+    chan = struct.unpack('>H', payload_bytes[68:70])[0]
+    ssid = payload_bytes[70:103].partition(b'\0')[0].decode('ascii', errors='ignore')
+    nosave = payload_bytes[103]
+
+    auth_type = "AUTH_PSK" if typ == 2 else "AUTH_OPEN" if typ == 1 else f"Unknown ({typ})"
+    print(f"    - OLD_CONN_HDR:")
+    print(f"      - SSID: '{ssid}'")
+    print(f"      - PSK: '{(psk)}'")
+    print(f"      - Auth Type: {auth_type}")
+    print(f"      - Channel: {chan}")
+    print(f"      - No Save: {nosave}")
+
+def parse_conn_req_new(payload):
+    payload_bytes = bytes(payload)
+    cred_size, flags, chan, ssid_len = struct.unpack_from('>HBBB', payload_bytes)
+    ssid_bytes = payload_bytes[5:5+ssid_len]
+    ssid = ssid_bytes.decode('ascii', errors='ignore')
+    auth = payload_bytes[44]
+    auth_type = "AUTH_PSK" if auth == 2 else "AUTH_OPEN" if auth == 1 else f"Unknown ({auth})"
+
+    print(f"    - CONN_HDR:")
+    print(f"      - SSID: '{ssid}' (len={ssid_len})")
+    print(f"      - Auth Type: {auth_type}")
+    print(f"      - Channel: {chan}")
+    print(f"      - Flags: 0x{flags:02x}")
+    print(f"      - Credential Size: {cred_size}")
+
+    if cred_size > 48: # PSK data follows
+        psk_data = payload_bytes[48:]
+        psk_len = psk_data[0]
+        psk = psk_data[1:1+psk_len].decode('ascii', errors='ignore')
+        print(f"    - PSK_DATA:")
+        print(f"      - PSK: '{psk}' (len={psk_len})")
+
+def parse_send_cmd(payload):
+    # SEND_CMD is 4 bytes, followed by data
+    sock, _, dlen = struct.unpack_from('>BBH', bytes(payload))
+    data = payload[4:4+dlen]
+    print(f"    - SEND_CMD: sock={sock}, dlen={dlen}")
+    print(f"      - Data: {bytes(data[:16]).hex()}...")
+
 
 GOP_PARSERS = {
     GOP_BIND: parse_bind_cmd,
     GOP_STATE_CHANGE: parse_state_change,
     GOP_DHCP_CONF: parse_dhcp_conf,
+    GOP_CONN_REQ_OLD: parse_conn_req_old,
+    GOP_CONN_REQ_NEW: parse_conn_req_new,
+    GOP_SEND: parse_send_cmd,
 }
 
 
@@ -131,14 +180,62 @@ def decode_full_stream(mosi, miso):
             if mosi_pos + 7 > len(mosi): break
             addr = spi_decoder.u24_to_int_be(mosi[mosi_pos+1:mosi_pos+4])
             count = spi_decoder.u24_to_int_be(mosi[mosi_pos+4:mosi_pos+7])
-            print(f"[{mosi_pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
 
             data_start = mosi_pos + 10
             if data_start + count > len(mosi): break
 
             payload = mosi[data_start : data_start + count]
-            decode_gop(payload, "MOSI")
-            mosi_pos = data_start + count
+
+            is_gop_header = False
+            if count == 8 and len(payload) > 1:
+                gid = payload[0]
+                op = payload[1]
+                gop = GIDOP(gid, op & 0x7f)
+                if gid in GROUP_IDS and gop in OPERATIONS:
+                    is_gop_header = True
+
+            if is_gop_header:
+                print(f"[{mosi_pos}] CMD_WRITE_DATA (GOP Header)\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+                hif_len = payload[2] | (payload[3] << 8)
+                payload_len_expected = hif_len - 8
+
+                full_payload = list(payload)
+
+                temp_mosi_pos = data_start + count
+                payload_len_collected = 0
+
+                while payload_len_collected < payload_len_expected and temp_mosi_pos < len(mosi):
+                    start_of_cmd = temp_mosi_pos
+                    while start_of_cmd < len(mosi) and mosi[start_of_cmd] == 0:
+                        start_of_cmd += 1
+
+                    if start_of_cmd >= len(mosi): break
+
+                    next_cmd = mosi[start_of_cmd]
+                    if next_cmd == spi_decoder.CMD_WRITE_DATA:
+                        if start_of_cmd + 7 > len(mosi): break
+                        next_addr = spi_decoder.u24_to_int_be(mosi[start_of_cmd+1:start_of_cmd+4])
+                        next_count = spi_decoder.u24_to_int_be(mosi[start_of_cmd+4:start_of_cmd+7])
+                        print(f"[{start_of_cmd}] CMD_WRITE_DATA (GOP Payload)\n  MOSI -> Addr: 0x{next_addr:04x}, Count: {next_count}")
+
+                        next_data_start = start_of_cmd + 10
+                        if next_data_start + next_count > len(mosi): break
+
+                        data_chunk = mosi[next_data_start : next_data_start + next_count]
+                        full_payload.extend(data_chunk)
+                        payload_len_collected += next_count
+
+                        temp_mosi_pos = next_data_start + next_count
+                    else:
+                        break
+
+                decode_gop(full_payload, "MOSI")
+                mosi_pos = temp_mosi_pos
+
+            else:
+                print(f"[{mosi_pos}] CMD_WRITE_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
+                decode_gop(payload, "MOSI")
+                mosi_pos = data_start + count
 
         elif cmd == spi_decoder.CMD_READ_DATA:
             if mosi_pos + 7 > len(mosi): break
@@ -146,13 +243,17 @@ def decode_full_stream(mosi, miso):
             count = spi_decoder.u24_to_int_be(mosi[mosi_pos+4:mosi_pos+7])
             print(f"[{mosi_pos}] CMD_READ_DATA\n  MOSI -> Addr: 0x{addr:04x}, Count: {count}")
 
-            # The GOP response is in the MISO stream. We can't know the exact
-            # length, so we'll just look for a GOP in the upcoming bytes.
-            search_area = miso[miso_pos : miso_pos + count + 100] # Heuristic search window
+            search_area = miso[miso_pos : miso_pos + count + 100]
             decode_gop(search_area, "MISO")
             mosi_pos += 7
+
+        elif cmd == spi_decoder.CMD_RESET:
+            print(f"[{mosi_pos}] CMD_RESET")
+            mosi_pos += 1
+
         elif cmd == 0:
-            mosi_pos +=1
+            mosi_pos += 1
+
         else:
             print(f"Unknown CMD 0x{cmd:x} at {mosi_pos}. miso_pos: {miso_pos}")
             exit(-1)
